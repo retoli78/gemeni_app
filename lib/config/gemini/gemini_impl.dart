@@ -87,7 +87,7 @@ class GeminiImpl {
 
     final formData = FormData();
     formData.fields.add(MapEntry('prompt', prompt));
-    formData.fields.add(MapEntry('chatID', chatId));
+    formData.fields.add(MapEntry('chatId', chatId));
 
     if(files.isNotEmpty) {
       for (XFile file in files.reversed) {
