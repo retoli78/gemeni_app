@@ -33,45 +33,12 @@ class GeminiImpl {
   
     }) async* {
 
-    //Todo: Tener presente que enviaremos imágenes
-    //! Multipart
-
-    final formData = FormData();
-    formData.fields.add(MapEntry('prompt', prompt));
-
-    if(files.isNotEmpty) {
-      for (XFile file in files.reversed) {
-        formData.files.add(MapEntry(
-          'files',
-          MultipartFile.fromFileSync(file.path, filename: file.name)
-        ));
-      }
-    }
-
-
-    try {
-      print(formData.fields);
-      //final body = jsonEncode({'prompt': prompt});
-      final response = await _http.post(
-        '/basic-prompt-stream',
-        data: formData,
-        options: Options(responseType: ResponseType.stream)
+      yield* _getStreamResponse(
+        endpoint: '/basic-prompt-stream',
+        prompt: prompt,
+        files: files,
       );
-      
-      final stream = response.data.stream as Stream<List<int>>;
-      String buffer = '';
-      
-      await for (final chunk in stream) {
-        final chunkString = utf8.decode(chunk, allowMalformed: true);
-        buffer += chunkString;
-
-        yield buffer;
-      }
-    } catch (e) {
-      // ignore: avoid_print
-      print(e);
-      throw Exception('Error al obtener el stream de Gemini');
-    }
+    
   }
 
 
@@ -82,13 +49,32 @@ class GeminiImpl {
   
     }) async* {
 
+      yield* _getStreamResponse(
+        endpoint: '/chat-stream',
+        prompt: prompt,
+        files: files,
+        formFields: {'chatId': chatId},
+      );
+   
+  }
+
+  // Emitir el stream de información
+
+  Stream<String> _getStreamResponse({
+    required String endpoint,
+    required String prompt,
+    List<XFile> files = const [],
+    Map<String, dynamic> formFields = const {},
+  }) async*{
 
     //! Multipart
-
     final formData = FormData();
     formData.fields.add(MapEntry('prompt', prompt));
-    formData.fields.add(MapEntry('chatId', chatId));
+    for(final entry in formFields.entries) {
+      formData.fields.add(MapEntry(entry.key, entry.value));
+    }
 
+  //! Achivos a subir
     if(files.isNotEmpty) {
       for (XFile file in files.reversed) {
         formData.files.add(MapEntry(
@@ -98,17 +84,14 @@ class GeminiImpl {
       }
     }
 
-
     try {
-      print(formData);
+      //print(formData);
       final response = await _http.post(
-        '/chat-stream',
+        endpoint,
         data: formData,
         options: Options(responseType: ResponseType.stream),
       );
 
-      
-      
       final stream = response.data.stream as Stream<List<int>>;
       String buffer = '';
       
